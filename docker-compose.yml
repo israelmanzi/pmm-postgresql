@@ -1,0 +1,64 @@
+services:
+  pmm-server:
+    image: percona/pmm-server:2
+    container_name: pmm-server
+    ports:
+      - "443:443"
+      - "80:80"
+    volumes:
+      - pmm-data:/srv
+    restart: always
+    networks:
+      - pmm-network
+
+  postgres:
+    image: postgres:14
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: pmm_db
+      POSTGRES_INITDB_ARGS: --data-checksums
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c pg_stat_statements.max=10000
+      -c track_io_timing=on
+    ports:
+      - "5432:5432"
+    restart: always
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - pmm-network
+
+  pmm-client:
+    image: percona/pmm-client:2
+    container_name: pmm-client
+    depends_on:
+      - pmm-server
+      - postgres
+    environment:
+      - PMM_AGENT_SERVER_ADDRESS=pmm-server:443
+      - PMM_AGENT_SERVER_USERNAME=admin
+      - PMM_AGENT_SERVER_PASSWORD=admin
+      - PMM_AGENT_SERVER_INSECURE_TLS=1
+      - PMM_AGENT_SETUP=1
+    entrypoint: ["/bin/bash", "-c"]
+    command: >
+      pmm-agent --config-file=/usr/local/percona/pmm2/config/pmm-agent.yaml;
+      pmm-admin status;
+      pmm-admin add postgresql --username=postgres --password=password --host=postgres --query-source=pgstatments;
+      sleep infinity
+    restart: always
+    networks:
+      - pmm-network
+
+volumes:
+  pmm-data:
+  postgres-data:
+
+networks:
+  pmm-network:
+    driver: bridge
