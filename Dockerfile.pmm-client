@@ -1,0 +1,13 @@
+FROM redhat/ubi8-minimal:latest AS pmm-client-base
+RUN microdnf update -y && \
+    microdnf install -y yum && \
+    yum install -y https://repo.percona.com/yum/percona-release-latest.noarch.rpm && \
+    yum install -y pmm2-client perl && \
+    yum clean all && \
+    microdnf clean all
+
+FROM pmm-client-base
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]

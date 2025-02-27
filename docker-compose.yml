@@ -11,7 +11,7 @@ services:
     networks:
       - pmm-network
 
-  postgres:
+  pg-service:
     image: postgres:14
     container_name: postgres
     environment:
@@ -25,35 +25,31 @@ services:
       -c pg_stat_statements.track=all
       -c pg_stat_statements.max=10000
       -c track_io_timing=on
+      -c log_min_duration_statement=0
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-pg.sql:/docker-entrypoint-initdb.d/init-pg.sql
     ports:
       - "5432:5432"
     restart: always
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
     networks:
       - pmm-network
 
   pmm-client:
-    image: percona/pmm-client:2
+    build:
+      context: .
+      dockerfile: Dockerfile.pmm-client
     container_name: pmm-client
+    environment:
+      CLIENT_ADDRESS: pmm-client
+      CLIENT_NAME: pg-client
+      POSTGRES_PASSWORD: password
     depends_on:
       - pmm-server
-      - postgres
-    environment:
-      - PMM_AGENT_SERVER_ADDRESS=pmm-server:443
-      - PMM_AGENT_SERVER_USERNAME=admin
-      - PMM_AGENT_SERVER_PASSWORD=admin
-      - PMM_AGENT_SERVER_INSECURE_TLS=1
-      - PMM_AGENT_SETUP=1
-    entrypoint: ["/bin/bash", "-c"]
-    command: >
-      pmm-agent --config-file=/usr/local/percona/pmm2/config/pmm-agent.yaml;
-      pmm-admin status;
-      pmm-admin add postgresql --username=postgres --password=password --host=postgres --query-source=pgstatments;
-      sleep infinity
-    restart: always
+      - pg-service
     networks:
       - pmm-network
+    restart: always
 
 volumes:
   pmm-data:
