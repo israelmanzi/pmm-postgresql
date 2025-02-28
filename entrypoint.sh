@@ -6,9 +6,9 @@ pmm-agent --config-file=/usr/local/percona/pmm2/config/pmm-agent.yaml > /var/log
 
 sleep 5
 
-pmm-admin config --force --server-insecure-tls --server-url=https://admin:admin@pmm-server:443 pg-service generic pg-client
+pmm-admin config --force --server-insecure-tls --server-url=https://admin:admin@pmm-server:443 pg-service
 
-pmm-admin add postgresql --username=postgres --password=password --query-source=pgstatstatements postgres pg-service:5432
+pmm-admin add postgresql --username=postgres --password=password pg-service pg-service:5432
 
 sleep 5
 
