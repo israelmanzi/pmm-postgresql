@@ -18,7 +18,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -32,13 +32,13 @@
       },
       "id": 1,
       "panels": [],
-      "title": "Database Overview",
+      "title": "Database Overview - $service",
       "type": "row"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "eefil4vkcm22oa"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -91,22 +91,22 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "pg_database_size_size_bytes{datname=\"postgres\"}",
+          "expr": "pg_database_size_size_bytes{service=\"$service\", datname=\"$database\"}",
           "legendFormat": "__auto",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Database Size",
+      "title": "Database Size - $database",
       "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -168,10 +168,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(sum(pg_stat_activity_count{state=\"active\"}))",
+          "expr": "sort_desc(sum(pg_stat_activity_count{service=\"$service\", state=\"active\"}))",
           "legendFormat": "Active",
           "range": true,
           "refId": "A"
@@ -179,10 +179,10 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(sum(pg_stat_activity_count{state=\"idle\"}))",
+          "expr": "sort_desc(sum(pg_stat_activity_count{service=\"$service\", state=\"idle\"}))",
           "hide": false,
           "legendFormat": "Idle",
           "range": true,
@@ -191,17 +191,17 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(sum(pg_stat_activity_count{state=\"idle in transaction\"}))",
+          "expr": "sort_desc(sum(pg_stat_activity_count{service=\"$service\", state=\"idle in transaction\"}))",
           "hide": false,
           "legendFormat": "Idle in Transaction",
           "range": true,
           "refId": "C"
         }
       ],
-      "title": "Database Connections",
+      "title": "Database Connections - $service",
       "type": "stat"
     },
     {
@@ -214,13 +214,13 @@
       },
       "id": 4,
       "panels": [],
-      "title": "Query Performance",
+      "title": "Query Performance - $service",
       "type": "row"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -302,22 +302,22 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(topk(5, pg_stat_statements_total_exec_time_s))",
+          "expr": "sort_desc(topk(5, pg_stat_statements_total_exec_time_s{service=\"$service\"}))",
           "legendFormat": "{{query}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Top 5 Queries by Total Execution Time",
+      "title": "Top 5 Queries by Total Execution Time - $service",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -399,22 +399,22 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(topk(5, pg_stat_statements_mean_exec_time_s))",
+          "expr": "sort_desc(topk(5, pg_stat_statements_mean_exec_time_s{service=\"$service\"}))",
           "legendFormat": "{{query}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Top 5 Queries by Mean Execution Time",
+      "title": "Top 5 Queries by Mean Execution Time - $service",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "eefil4vkcm22oa"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -706,7 +706,7 @@
         "sortBy": [
           {
             "desc": true,
-            "displayName": "Value(sec)"
+            "displayName": "Total Time (s)"
           }
         ]
       },
@@ -715,16 +715,16 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort(topk(10, pg_stat_statements_total_exec_time_s))",
+          "expr": "sort(topk(10, pg_stat_statements_total_exec_time_s{service=\"$service\"}))",
           "format": "table",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Top 10 Most Time-Consuming Queries",
+      "title": "Top 10 Most Time-Consuming Queries - $service",
       "transformations": [
         {
           "id": "organize",
@@ -734,12 +734,13 @@
               "__name__": true,
               "instance": true,
               "job": true,
-              "queryid": true
+              "queryid": true,
+              "service": true
             },
             "includeByName": {},
             "indexByName": {},
             "renameByName": {
-              "Value": "Value(sec)",
+              "Value": "Total Time (s)",
               "pg_stat_statements_calls": "Calls",
               "pg_stat_statements_max_exec_time_s": "Max Time (s)",
               "pg_stat_statements_mean_exec_time_s": "Mean Time (s)",
@@ -762,13 +763,13 @@
       },
       "id": 8,
       "panels": [],
-      "title": "Database Connection States",
+      "title": "Database Connection States - $service",
       "type": "row"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -849,22 +850,22 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(pg_stat_activity_count)",
+          "expr": "sort_desc(pg_stat_activity_count{service=\"$service\"})",
           "legendFormat": "{{datname}} - {{state}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Database Connection States",
+      "title": "Database Connection States - $service",
       "type": "timeseries"
     },
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "prometheus"
+        "uid": "${datasource}"
       },
       "fieldConfig": {
         "defaults": {
@@ -924,16 +925,16 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "prometheus"
+            "uid": "${datasource}"
           },
           "editorMode": "code",
-          "expr": "sort_desc(sum by(state) (pg_stat_activity_count))",
+          "expr": "sort_desc(sum by(state) (pg_stat_activity_count{service=\"$service\"}))",
           "legendFormat": "{{state}}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Connection States Distribution",
+      "title": "Connection States Distribution - $service",
       "type": "bargauge"
     }
   ],
@@ -945,7 +946,85 @@
     "queries"
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "current": {
+          "selected": false,
+          "text": "prometheus",
+          "value": "eefil4vkcm22oa"
+        },
+        "description": "Prometheus datasource",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Data Source",
+        "multi": false,
+        "name": "datasource",
+        "options": [],
+        "query": "prometheus",
+        "queryValue": "",
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "type": "datasource"
+      },
+      {
+        "current": {
+          "isNone": true,
+          "selected": false,
+          "text": "None",
+          "value": ""
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(pg_up, service)",
+        "description": "PostgreSQL service",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Service",
+        "multi": false,
+        "name": "service",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_up, service)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "postgres",
+          "value": "postgres"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(pg_database_size_size_bytes{service=\"$service\"}, datname)",
+        "description": "Database name",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Database",
+        "multi": false,
+        "name": "database",
+        "options": [],
+        "query": {
+          "query": "label_values(pg_database_size_size_bytes{service=\"$service\"}, datname)",
+          "refId": "StandardVariableQuery"
+        },
+        "refresh": 1,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
   },
   "time": {
     "from": "now-1h",
@@ -955,6 +1034,6 @@
   "timezone": "",
   "title": "PostgreSQL Query Analytics",
   "uid": "befim14lgl1q8e",
-  "version": 5,
+  "version": 4,
   "weekStart": ""
 }
