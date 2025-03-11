@@ -1,26 +1,14 @@
 services:
-  pmm-server:
-    image: percona/pmm-server:2
-    container_name: pmm-server
-    ports:
-      - "443:443"
-      - "80:80"
-    volumes:
-      - pmm-data:/srv
-    restart: always
-    networks:
-      - pmm-network
-
   pg-service:
     image: postgres:14
     container_name: pg-service
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: pmm_db
+      POSTGRES_DB: postgres
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./init-pg.sql:/docker-entrypoint-initdb.d/init-pg.sql
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres-config/init-pg.sql:/docker-entrypoint-initdb.d/init-pg.sql
     ports:
       - "5432:5432"
     command: >
@@ -28,30 +16,74 @@ services:
       -c shared_preload_libraries=pg_stat_statements
       -c pg_stat_statements.track=all
       -c pg_stat_statements.max=10000
+      -c track_activity_query_size=2048
       -c track_io_timing=on
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - pmm-network
 
-  pmm-client:
-    build:
-      context: .
-      dockerfile: Dockerfile.pmm-client
-    container_name: pmm-client
+  postgres-exporter:
+    container_name: postgres-exporter
+    image: wrouesnel/postgres_exporter
     environment:
-      CLIENT_ADDRESS: pmm-client
-      CLIENT_NAME: pg-client
-      POSTGRES_PASSWORD: password
-    depends_on:
-      - pmm-server
-      - pg-service
+      - DATA_SOURCE_NAME=postgresql://postgres_exporter:postgres_exporter@pg-service:5432/postgres?sslmode=disable
+      - PG_EXPORTER_AUTO_DISCOVER_DATABASES=true
+    volumes:
+      - ./postgres-exporter-config/queries.yaml:/etc/postgres_exporter/queries.yaml
+    command:
+      - --extend.query-path=/etc/postgres_exporter/queries.yaml
+    ports:
+      - "9187:9187"
     networks:
       - pmm-network
+    depends_on:
+      pg-service:
+        condition: service_healthy
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus
     restart: always
+    volumes:
+      - ./prometheus-config:/etc/prometheus
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --enable-feature=exemplar-storage
+      - --web.enable-remote-write-receiver
+    ports:
+      - "9090:9090"
+    depends_on:
+      - pg-service
+      - postgres-exporter
+    networks:
+      - pmm-network
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:10.4.2
+    restart: always
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+    networks:
+      - pmm-network
 
 volumes:
-  pmm-data:
-  postgres-data:
+  postgres_data:
+  grafana_data:
+  prometheus_data:
 
 networks:
   pmm-network:
